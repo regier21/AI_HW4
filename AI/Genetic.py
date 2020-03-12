@@ -9,7 +9,8 @@ from Move import Move
 from GameState import *
 from AIPlayerUtils import *
 
-NUM_GENES = 5
+NUM_GENES = 6 # Should be even
+NUM_GAMES = 1
 
 ##
 #AIPlayer
@@ -35,11 +36,33 @@ class AIPlayer(Player):
         self.genes = []
         self.fitnesses = []
         self.nextGeneIndex = 0
+        self.gameIndex = 0
 
     def initGenes(self):
         for i in range(NUM_GENES):
             self.genes.append(Gene([], True))
             self.fitnesses.append(0.0)
+
+    def reproduce(self):
+        newGenes = []
+
+        totalFitness = sum(self.fitnesses)
+        for i in range(NUM_GENES / 2):
+            parent1 = random.random()
+            parent2 = random.random()
+            p1gene = p2gene = None
+            for i, fitness in enumerate(self.fitnesses):
+                total += fitness / totalFitness
+                if total > parent1 and parent1 > prev:
+                    p1gene = self.genes[i]
+                if total > parent2 and parent2 > prev:
+                    p2gene = self.genes[i]
+                prev = total
+            gene1, gene2 = p1gene.mateWith(p2gene)
+            newGenes.append(gene1)
+            newGenes.append(gene2)
+
+        self.dna = newGenes
         
     ##
     #getPlacement
@@ -105,7 +128,16 @@ class AIPlayer(Player):
     #
     def registerWin(self, hasWon):
         #method templaste, not implemented
-        pass
+        self.gameIndex += 1
+        if self.gameIndex == NUM_GAMES:
+            self.gameIndex = 0
+
+            # TODO: Calculate and set fitness
+
+            self.nextGeneIndex += 1
+            if self.nextGeneIndex == NUM_GENES:
+                self.reproduce()
+                self.nextGeneIndex = 0
 
 NUM_GRASS = 9
 NUM_ENEMY_FOOD = 2
@@ -127,10 +159,41 @@ class Gene:
             self.dna.append((x, y + ENEMY_COORD_OFFSET))
 
     def getOurConstrs(self):
-        return self.dna[:-NUM_ENEMY_FOOD]
+        coords = self.dna[:-NUM_ENEMY_FOOD]
+        usedCoords = set()
+        for i in range(0, len(coords), 2):
+            x = coords[i]
+            y = coords[i + 1]
+            coord = (x, y)
+            while coord in usedCoords:
+                x += 1
+                if x >= X_RANGE:
+                    x = 0
+                    y += 1
+                    y %= Y_RANGE
+                coord = (x, y)
+            coords[i] = coord
+            usedCoords.add(coord)
+        return coords
 
     def getEnemyFood(self):
-        return self.dna[-NUM_ENEMY_FOOD:]
+        coords = self.dna[-NUM_ENEMY_FOOD:]
+        usedCoords = set()
+        for i in range(0, len(coords), 2):
+            x = coords[i]
+            y = coords[i + 1]
+            coord = (x, y)
+            while coord in usedCoords:
+                x += 1
+                if x >= X_RANGE:
+                    x = 0
+                    y += 1
+                    if y == ENEMY_COORD_OFFSET + Y_RANGE - 1:
+                        y = ENEMY_COORD_OFFSET
+                coord = (x, y)
+            coords[i] = coord
+            usedCoords.add(coord)
+        return coords
 
     def mutate(self):
         if random.random() <= PROB_MUTATION:
