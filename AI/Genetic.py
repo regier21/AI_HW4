@@ -9,6 +9,7 @@ from Move import Move
 from GameState import *
 from AIPlayerUtils import *
 
+NUM_GENES = 5
 
 ##
 #AIPlayer
@@ -30,8 +31,15 @@ class AIPlayer(Player):
     ##
     def __init__(self, inputPlayerId):
         super(AIPlayer,self).__init__(inputPlayerId, "Genetic")
-        #thre instant vars
+        #three instant vars
         self.genes = []
+        self.fitnesses = []
+        self.nextGeneIndex = 0
+
+    def initGenes(self):
+        for i in range(NUM_GENES):
+            self.genes.append(Gene([], True))
+            self.fitnesses.append(0.0)
         
     ##
     #getPlacement
@@ -51,39 +59,9 @@ class AIPlayer(Player):
         numToPlace = 0
         #implemented by students to return their next move
         if currentState.phase == SETUP_PHASE_1:    #stuff on my side
-            numToPlace = 11
-            moves = []
-            for i in range(0, numToPlace):
-                move = None
-                while move == None:
-                    #Choose any x location
-                    x = random.randint(0, 9)
-                    #Choose any y location on your side of the board
-                    y = random.randint(0, 3)
-                    #Set the move if this space is empty
-                    if currentState.board[x][y].constr == None and (x, y) not in moves:
-                        move = (x, y)
-                        #Just need to make the space non-empty. So I threw whatever I felt like in there.
-                        currentState.board[x][y].constr == True
-                moves.append(move)
-            return moves
+            return self.genes[self.nextGeneIndex].getOurConstrs()
         elif currentState.phase == SETUP_PHASE_2:   #stuff on foe's side
-            numToPlace = 2
-            moves = []
-            for i in range(0, numToPlace):
-                move = None
-                while move == None:
-                    #Choose any x location
-                    x = random.randint(0, 9)
-                    #Choose any y location on enemy side of the board
-                    y = random.randint(6, 9)
-                    #Set the move if this space is empty
-                    if currentState.board[x][y].constr == None and (x, y) not in moves:
-                        move = (x, y)
-                        #Just need to make the space non-empty. So I threw whatever I felt like in there.
-                        currentState.board[x][y].constr == True
-                moves.append(move)
-            return moves
+            return self.genes[self.nextGeneIndex].getEnemyFood()
         else:
             return [(0, 0)]
     
@@ -128,3 +106,53 @@ class AIPlayer(Player):
     def registerWin(self, hasWon):
         #method templaste, not implemented
         pass
+
+NUM_GRASS = 9
+NUM_ENEMY_FOOD = 2
+ENEMY_COORD_OFFSET = 6
+PROB_MUTATION = 0.25
+class Gene:
+
+    def __init__(self, dna, rand=False):
+        if not rand:
+            self.dna = dna # Array of integers
+        
+        self.dna = []
+        self.dna.append(getRandCoord()) # Anthill
+        self.dna.append(getRandCoord()) # Tunnel
+        for i in range(NUM_GRASS):
+            self.dna.append(getRandCoord())
+        for i in range(NUM_ENEMY_FOOD):
+            x, y = getRandCoord()
+            self.dna.append((x, y + ENEMY_COORD_OFFSET))
+
+    def getOurConstrs(self):
+        return self.dna[:-NUM_ENEMY_FOOD]
+
+    def getEnemyFood(self):
+        return self.dna[-NUM_ENEMY_FOOD:]
+
+    def mutate(self):
+        if random.random() <= PROB_MUTATION:
+            index = random.randint(len(self.dna))
+            if index % 2 == 0:
+                self.dna[index] = random.randint(0, X_RANGE - 1)
+            elif len(self.dna) - index <= NUM_ENEMY_FOOD:
+                self.dna[index] = random.randint(0, Y_RANGE - 1) + ENEMY_COORD_OFFSET
+            else:
+                self.dna[index] = random.randint(0, Y_RANGE - 1)
+
+    def mateWith(self, other):
+        size = len(self.dna)
+        crossover = random.randint(0, size)
+        child1 = Gene(self.dna[:crossover] + other.dna[crossover:])
+        child1.mutate()
+        child2 = Gene(other.dna[:crossover] + self.dna[crossover:])
+        child2.mutate()
+        return (child1, child2)
+        
+
+X_RANGE = 10
+Y_RANGE = 4
+def getRandCoord():
+    return (random.randint(0, X_RANGE - 1), random.randint(0, Y_RANGE - 1))
