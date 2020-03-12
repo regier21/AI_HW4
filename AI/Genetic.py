@@ -30,7 +30,9 @@ class AIPlayer(Player):
     ##
     def __init__(self, inputPlayerId):
         super(AIPlayer,self).__init__(inputPlayerId, "Genetic")
-    
+        #thre instant vars
+        self.genes = []
+        
     ##
     #getPlacement
     #
