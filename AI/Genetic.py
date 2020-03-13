@@ -33,24 +33,27 @@ class AIPlayer(Player):
     def __init__(self, inputPlayerId):
         super(AIPlayer,self).__init__(inputPlayerId, "Genetic")
         #three instant vars
-        self.genes = []
-        self.fitnesses = []
         self.nextGeneIndex = 0
         self.gameIndex = 0
+        self.initGenes()
 
     def initGenes(self):
+        self.genes = []
+        self.fitnesses = []
         for i in range(NUM_GENES):
             self.genes.append(Gene([], True))
-            self.fitnesses.append(0.0)
+            self.fitnesses.append(0)
 
     def reproduce(self):
         newGenes = []
 
         totalFitness = sum(self.fitnesses)
-        for i in range(NUM_GENES / 2):
+        for i in range(NUM_GENES // 2):
             parent1 = random.random()
             parent2 = random.random()
             p1gene = p2gene = None
+            total = 0
+            prev = total
             for i, fitness in enumerate(self.fitnesses):
                 total += fitness / totalFitness
                 if total > parent1 and parent1 > prev:
@@ -79,6 +82,8 @@ class AIPlayer(Player):
     #Return: The coordinates of where the construction is to be placed
     ##
     def getPlacement(self, currentState):
+        self.turnsAlive = 0
+        self.foodGathered = 0
         numToPlace = 0
         #implemented by students to return their next move
         if currentState.phase == SETUP_PHASE_1:    #stuff on my side
@@ -98,6 +103,7 @@ class AIPlayer(Player):
     #Return: The Move to be made
     ##
     def getMove(self, currentState):
+        self.foodGathered = getCurrPlayerInventory(currentState).foodCount
         moves = listAllLegalMoves(currentState)
         selectedMove = moves[random.randint(0,len(moves) - 1)];
 
@@ -106,6 +112,8 @@ class AIPlayer(Player):
         while (selectedMove.moveType == BUILD and numAnts >= 3):
             selectedMove = moves[random.randint(0,len(moves) - 1)];
             
+        if selectedMove.moveType == END:
+            self.turnsAlive += 1
         return selectedMove
     
     ##
@@ -121,23 +129,41 @@ class AIPlayer(Player):
         #Attack a random enemy.
         return enemyLocations[random.randint(0, len(enemyLocations) - 1)]
 
+    def getFitness(self, hasWon):
+        fitness = self.turnsAlive + 25 * self.foodGathered
+        if hasWon:
+            fitness += 200
+        return fitness
+
+    def reportBest(self):
+        bestGene = max(zip(self.genes, self.fitnesses), key=lambda x: x[1])[0]
+        state = GameState.getBlankState()
+        myInv = state.inventories[0]
+        myInv.constrs = createConstrList(bestGene.getOurConstrs())
+        neutalConstrs = state.inventories[2].constrs
+        foodCoords = bestGene.getEnemyFood()
+        for coord in foodCoords:
+            neutalConstrs.append(Construction(coord, FOOD))
+        asciiPrintState(state)
+
+
+
     ##
     #registerWin
     #
-    # This agent doens't learn
+    #
     #
     def registerWin(self, hasWon):
-        #method templaste, not implemented
+        self.fitnesses[self.nextGeneIndex] += self.getFitness(hasWon)
         self.gameIndex += 1
         if self.gameIndex == NUM_GAMES:
             self.gameIndex = 0
-
-            # TODO: Calculate and set fitness
-
             self.nextGeneIndex += 1
             if self.nextGeneIndex == NUM_GENES:
+                self.reportBest()
                 self.reproduce()
                 self.nextGeneIndex = 0
+                self.fitnesses = [0] * NUM_GENES
 
 NUM_GRASS = 9
 NUM_ENEMY_FOOD = 2
@@ -150,16 +176,22 @@ class Gene:
             self.dna = dna # Array of integers
         
         self.dna = []
-        self.dna.append(getRandCoord()) # Anthill
-        self.dna.append(getRandCoord()) # Tunnel
-        for i in range(NUM_GRASS):
-            self.dna.append(getRandCoord())
+
+        # Our constructions
+        for i in range(2 + NUM_GRASS):
+            x, y = getRandCoord()
+            self.dna.append(x)
+            self.dna.append(y)
+
+        # Enemy constructions
         for i in range(NUM_ENEMY_FOOD):
             x, y = getRandCoord()
-            self.dna.append((x, y + ENEMY_COORD_OFFSET))
+            self.dna.append(x)
+            self.dna.append(y + ENEMY_COORD_OFFSET)
 
     def getOurConstrs(self):
-        coords = self.dna[:-NUM_ENEMY_FOOD]
+        coords = self.dna[:-2*NUM_ENEMY_FOOD]
+        result = []
         usedCoords = set()
         for i in range(0, len(coords), 2):
             x = coords[i]
@@ -172,18 +204,19 @@ class Gene:
                     y += 1
                     y %= Y_RANGE
                 coord = (x, y)
-            coords[i] = coord
+            result.append(coord)
             usedCoords.add(coord)
-        return coords
+        return result
 
     def getEnemyFood(self):
-        coords = self.dna[-NUM_ENEMY_FOOD:]
+        coords = self.dna[-2*NUM_ENEMY_FOOD:]
         usedCoords = set()
+        result = []
         for i in range(0, len(coords), 2):
             x = coords[i]
             y = coords[i + 1]
             coord = (x, y)
-            while coord in usedCoords:
+            while coord in usedCoords or sum(coord) >= 15:
                 x += 1
                 if x >= X_RANGE:
                     x = 0
@@ -191,13 +224,13 @@ class Gene:
                     if y == ENEMY_COORD_OFFSET + Y_RANGE - 1:
                         y = ENEMY_COORD_OFFSET
                 coord = (x, y)
-            coords[i] = coord
+            result.append(coord)
             usedCoords.add(coord)
-        return coords
+        return result
 
     def mutate(self):
         if random.random() <= PROB_MUTATION:
-            index = random.randint(len(self.dna))
+            index = random.randint(0, len(self.dna) - 1)
             if index % 2 == 0:
                 self.dna[index] = random.randint(0, X_RANGE - 1)
             elif len(self.dna) - index <= NUM_ENEMY_FOOD:
@@ -219,3 +252,11 @@ X_RANGE = 10
 Y_RANGE = 4
 def getRandCoord():
     return (random.randint(0, X_RANGE - 1), random.randint(0, Y_RANGE - 1))
+
+def createConstrList(coords):
+    constrs = []
+    constrs.append(Construction(coords[0], ANTHILL))
+    constrs.append(Construction(coords[1], TUNNEL))
+    for coord in coords[2:]:
+        constrs.append(Construction(coord, GRASS))
+    return constrs
