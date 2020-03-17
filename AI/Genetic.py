@@ -19,17 +19,6 @@ PROB_MUTATION = 0.10 # The chance that one allele is modified to a random value
 X_RANGE = 10 # Range of valid x values for coordinates
 Y_RANGE = 4 # Range of valid y values for coordinates
 
-NUM_GRASS = 9
-NUM_ENEMY_FOOD = 2
-ENEMY_COORD_OFFSET = 6
-PROB_MUTATION = 0.25
-
-# x and y coords
-X_RANGE = 10
-Y_RANGE = 4
-
-
-
 ##
 #AIPlayer
 #Description: The responsbility of this class is to interact with the game by
@@ -186,8 +175,6 @@ class AIPlayer(Player):
             neutalConstrs.append(Construction(coord, FOOD))
         asciiPrintState(state)
 
-
-
     ##
     #registerWin
     #
@@ -206,14 +193,6 @@ class AIPlayer(Player):
                 self.nextGeneIndex = 0
                 self.fitnesses = [0] * NUM_GENES
 
-<<<<<<< HEAD
-
-=======
-#NUM_GRASS = 9
-#NUM_ENEMY_FOOD = 2
-#ENEMY_COORD_OFFSET = 6
-#PROB_MUTATION = 0.25
->>>>>>> 2fc863ab57484ce7939ee4c8a8893b0beca11aa9
 class Gene:
 
     def __init__(self, dna, rand=False):
@@ -306,12 +285,6 @@ class Gene:
         child2.mutate()
         return (child1, child2)
         
-<<<<<<< HEAD
-=======
-
-#X_RANGE = 10
-#Y_RANGE = 4
->>>>>>> 2fc863ab57484ce7939ee4c8a8893b0beca11aa9
 def getRandCoord():
     return (random.randint(0, X_RANGE - 1), random.randint(0, Y_RANGE - 1))
 
