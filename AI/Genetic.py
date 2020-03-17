@@ -19,6 +19,17 @@ PROB_MUTATION = 0.10 # The chance that one allele is modified to a random value
 X_RANGE = 10 # Range of valid x values for coordinates
 Y_RANGE = 4 # Range of valid y values for coordinates
 
+NUM_GRASS = 9
+NUM_ENEMY_FOOD = 2
+ENEMY_COORD_OFFSET = 6
+PROB_MUTATION = 0.25
+
+# x and y coords
+X_RANGE = 10
+Y_RANGE = 4
+
+
+
 ##
 #AIPlayer
 #Description: The responsbility of this class is to interact with the game by
@@ -39,11 +50,20 @@ class AIPlayer(Player):
     ##
     def __init__(self, inputPlayerId):
         super(AIPlayer,self).__init__(inputPlayerId, "Genetic")
-        #three instant vars
+        #three instant variables
         self.nextGeneIndex = 0
         self.gameIndex = 0
         self.generation = 0
         self.initGenes()
+
+    #initGenes
+    #Description: initializes the population of genes with random values
+    #            reset fitness list to default values.
+
+    #Variables:
+        # genes: store genes(list)
+        #fitness: store fitness of genes(list)
+
 
     def initGenes(self):
         self.genes = []
@@ -51,6 +71,17 @@ class AIPlayer(Player):
         for i in range(NUM_GENES):
             self.genes.append(Gene([], True))
             self.fitnesses.append(0)
+
+    #Reproduce
+    #Description: generates children from the parents genes
+    #Varibles: 
+        #newGenes: list to store new genes
+        #parent1: parent 1
+        #parent2: parent 2
+        #total: 
+        #prev:
+        #p1gene: gene of parent 1
+        #p2gene: gene of parent 2
 
     def reproduce(self):
         newGenes = []
@@ -175,7 +206,14 @@ class AIPlayer(Player):
                 self.nextGeneIndex = 0
                 self.fitnesses = [0] * NUM_GENES
 
+<<<<<<< HEAD
 
+=======
+#NUM_GRASS = 9
+#NUM_ENEMY_FOOD = 2
+#ENEMY_COORD_OFFSET = 6
+#PROB_MUTATION = 0.25
+>>>>>>> 2fc863ab57484ce7939ee4c8a8893b0beca11aa9
 class Gene:
 
     def __init__(self, dna, rand=False):
@@ -215,6 +253,13 @@ class Gene:
             usedCoords.add(coord)
         return result
 
+    # getEnemyFood
+    #Description:
+    #Variables:
+
+    #return:
+
+
     def getEnemyFood(self):
         coords = self.dna[-2*NUM_ENEMY_FOOD:]
         usedCoords = set()
@@ -235,6 +280,10 @@ class Gene:
             usedCoords.add(coord)
         return result
 
+    #mutate
+    #Description:
+    #Variables:
+
     def mutate(self):
         if random.random() <= PROB_MUTATION:
             index = random.randint(0, len(self.dna) - 1)
@@ -245,6 +294,9 @@ class Gene:
             else:
                 self.dna[index] = random.randint(0, Y_RANGE - 1)
 
+    #mateWith
+    #Parameters:
+    #variables:
     def mateWith(self, other):
         size = len(self.dna)
         crossover = random.randint(0, size)
@@ -254,9 +306,19 @@ class Gene:
         child2.mutate()
         return (child1, child2)
         
+<<<<<<< HEAD
+=======
+
+#X_RANGE = 10
+#Y_RANGE = 4
+>>>>>>> 2fc863ab57484ce7939ee4c8a8893b0beca11aa9
 def getRandCoord():
     return (random.randint(0, X_RANGE - 1), random.randint(0, Y_RANGE - 1))
 
+#createconstrList
+#Description:
+#Parameters:
+#returns:
 def createConstrList(coords):
     constrs = []
     constrs.append(Construction(coords[0], ANTHILL))
