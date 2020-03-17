@@ -9,8 +9,15 @@ from Move import Move
 from GameState import *
 from AIPlayerUtils import *
 
-NUM_GENES = 6 # Should be even
-NUM_GAMES = 1
+## Constants
+NUM_GENES = 12 # Size of gene pool, must be even
+NUM_GAMES = 3 # Number of games to evaluate a gene's fitness
+NUM_GRASS = 9 # Number of grass the agent must place
+NUM_ENEMY_FOOD = 2 # Number of enemy food the agent must place
+ENEMY_COORD_OFFSET = 6 # y value for beginning of enemy territory
+PROB_MUTATION = 0.10 # The chance that one allele is modified to a random value
+X_RANGE = 10 # Range of valid x values for coordinates
+Y_RANGE = 4 # Range of valid y values for coordinates
 
 ##
 #AIPlayer
@@ -35,6 +42,7 @@ class AIPlayer(Player):
         #three instant vars
         self.nextGeneIndex = 0
         self.gameIndex = 0
+        self.generation = 0
         self.initGenes()
 
     def initGenes(self):
@@ -136,6 +144,7 @@ class AIPlayer(Player):
         return fitness
 
     def reportBest(self):
+        print("Generation: %d" % self.generation)
         bestGene = max(zip(self.genes, self.fitnesses), key=lambda x: x[1])[0]
         state = GameState.getBlankState()
         myInv = state.inventories[0]
@@ -160,15 +169,13 @@ class AIPlayer(Player):
             self.gameIndex = 0
             self.nextGeneIndex += 1
             if self.nextGeneIndex == NUM_GENES:
+                self.generation += 1
                 self.reportBest()
                 self.reproduce()
                 self.nextGeneIndex = 0
                 self.fitnesses = [0] * NUM_GENES
 
-NUM_GRASS = 9
-NUM_ENEMY_FOOD = 2
-ENEMY_COORD_OFFSET = 6
-PROB_MUTATION = 0.25
+
 class Gene:
 
     def __init__(self, dna, rand=False):
@@ -216,12 +223,12 @@ class Gene:
             x = coords[i]
             y = coords[i + 1]
             coord = (x, y)
-            while coord in usedCoords or sum(coord) >= 15:
+            while coord in usedCoords or sum(coord) >= 15 or (x == 4 and y == 8):
                 x += 1
                 if x >= X_RANGE:
                     x = 0
                     y += 1
-                    if y == ENEMY_COORD_OFFSET + Y_RANGE - 1:
+                    if y == ENEMY_COORD_OFFSET + Y_RANGE:
                         y = ENEMY_COORD_OFFSET
                 coord = (x, y)
             result.append(coord)
@@ -233,7 +240,7 @@ class Gene:
             index = random.randint(0, len(self.dna) - 1)
             if index % 2 == 0:
                 self.dna[index] = random.randint(0, X_RANGE - 1)
-            elif len(self.dna) - index <= NUM_ENEMY_FOOD:
+            elif len(self.dna) - index <= NUM_ENEMY_FOOD * 2:
                 self.dna[index] = random.randint(0, Y_RANGE - 1) + ENEMY_COORD_OFFSET
             else:
                 self.dna[index] = random.randint(0, Y_RANGE - 1)
@@ -247,9 +254,6 @@ class Gene:
         child2.mutate()
         return (child1, child2)
         
-
-X_RANGE = 10
-Y_RANGE = 4
 def getRandCoord():
     return (random.randint(0, X_RANGE - 1), random.randint(0, Y_RANGE - 1))
 
